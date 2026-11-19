@@ -132,3 +132,10 @@ flutter:
 
   # Adds code generation (synthetic package) support
   generate: true
+
+  # Build iOS with CocoaPods instead of Swift Package Manager:
+  # flutter_branch_sdk ships its Swift sources in a lowercase `sources/`
+  # folder, which SwiftPM treats as an empty target on case-sensitive disks.
+  # Remove once the plugin is fixed.
+  config:
+    enable-swift-package-manager: false
