@@ -128,3 +128,6 @@ coverage/
 
 # FVM Version Cache
 .fvm/
+
+# Widget Preview related
+.widget_preview/

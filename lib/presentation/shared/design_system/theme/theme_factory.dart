@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widget_previews.dart';
 import 'package:flutter_template/presentation/shared/design_system/theme/app_colors.dart';
 import 'package:flutter_template/presentation/shared/design_system/theme/app_text_styles.dart';
 import 'package:flutter_template/presentation/shared/design_system/theme/app_theme.dart';
@@ -172,6 +173,28 @@ abstract class ThemeFactory {
         base.buttonTheme,
         borderColor: base.colorScheme.onSurface,
       ),
+    );
+  }
+}
+
+// Pass to `@Preview(theme: previewTheme)` so a widget preview uses the app
+// theme and follows the previewer's light/dark toggle. It is a top-level
+// function because the Flutter 3.50 previewer cannot reference static methods
+// such as `ThemeFactory.previewTheme` from an annotation.
+PreviewThemeData previewTheme() => const _AppPreviewTheme();
+
+final class _AppPreviewTheme extends PreviewThemeData {
+  const _AppPreviewTheme();
+
+  @override
+  Widget apply(BuildContext context, Widget child) {
+    final isDark = MediaQuery.platformBrightnessOf(context) == Brightness.dark;
+    final theme = isDark ? ThemeFactory.darkTheme() : ThemeFactory.lightTheme();
+    // Paint the app background, as a Scaffold would, so the preview does not
+    // show through the previewer's own colors.
+    return Theme(
+      data: theme,
+      child: Material(color: theme.scaffoldBackgroundColor, child: child),
     );
   }
 }

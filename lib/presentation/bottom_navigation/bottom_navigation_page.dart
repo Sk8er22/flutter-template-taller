@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_template/app/l10n/l10n.dart';
 import 'package:flutter_template/app/navigation/router/app_routes.dart';
 import 'package:flutter_template/presentation/shared/design_system/utils/animated_branch_container.dart';
 import 'package:go_router/go_router.dart';
@@ -22,7 +23,7 @@ class BottomNavigationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Flutter Template"),
+        title: Text(context.l10n.appTitle),
         actions: [
           IconButton(
             onPressed: () {
@@ -37,14 +38,14 @@ class BottomNavigationPage extends StatelessWidget {
         children: children,
       ),
       bottomNavigationBar: BottomNavigationBar(
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.article),
-            label: "Articles",
+            icon: const Icon(Icons.article),
+            label: context.l10n.bottomNavigationArticles,
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.handyman),
-            label: "Blank",
+            icon: const Icon(Icons.handyman),
+            label: context.l10n.bottomNavigationBlank,
           ),
         ],
         currentIndex: navigationShell.currentIndex,

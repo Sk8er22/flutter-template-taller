@@ -1,4 +1,16 @@
 {
+  "appTitle": "Flutter Template",
+  "@appTitle": {
+    "description": "Title shown in the app bar of the main screen"
+  },
+  "bottomNavigationArticles": "Articles",
+  "@bottomNavigationArticles": {
+    "description": "Label of the bottom navigation tab that shows the articles list"
+  },
+  "bottomNavigationBlank": "Blank",
+  "@bottomNavigationBlank": {
+    "description": "Label of the bottom navigation tab that shows the blank page"
+  },
   "dialogAppUpdateTitle": "Update Available",
   "@dialogAppUpdateTitle": {
     "description": "Title for the app update dialog"
