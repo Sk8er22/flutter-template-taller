@@ -63,6 +63,8 @@ FlutterTemplate Flutter Application. Add a description of what the app does.
 
     > The Articles list is loaded from [NewsAPI](https://newsapi.org), whose free plan only accepts browser requests from `localhost`. On web, the native-only integrations (Firebase, Branch, Datadog, push notifications, shake to open the console) are skipped and articles open in a new browser tab instead of an in-app web view.
 
+    > Get a free NewsAPI key at [newsapi.org/register](https://newsapi.org/register) and run the app with `flutter run -d chrome -t lib/main_qa.dart --dart-define=NEWS_API_KEY=YOUR_KEY`. Without the flag, a shared demo key with a small daily quota is used.
+
 ## Development Process
 
 Review the [CONTRIBUTING.md](/CONTRIBUTING.md) file to learn about the development process.

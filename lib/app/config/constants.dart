@@ -7,5 +7,10 @@ abstract class Constants {
   static const playstoreAppId = "com.levinriegner.fluttertemplate";
 
   // Keys
-  static const apiKey = "f32ad1e0dc6e4a4b838218e8f3dac87f";
+  // Students pass their own key via --dart-define=NEWS_API_KEY=<key>; this
+  // shared demo key is only a fallback (its small daily quota runs out).
+  static const apiKey = String.fromEnvironment(
+    "NEWS_API_KEY",
+    defaultValue: "f32ad1e0dc6e4a4b838218e8f3dac87f",
+  );
 }
