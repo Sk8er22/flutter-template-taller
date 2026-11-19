@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_template/app/navigation/router/app_routes.dart';
@@ -120,7 +121,17 @@ class _ArticleView extends StatelessWidget {
               if (_article.imageUrl != null)
                 Semantics(
                   label: "Alt content",
-                  child: CachedNetworkImage(imageUrl: _article.imageUrl!),
+                  // On web, Flutter can only draw images whose server allows
+                  // CORS, which most news sites don't, so the browser shows
+                  // them as <img> elements instead.
+                  child: kIsWeb
+                      ? Image.network(
+                          _article.imageUrl!,
+                          webHtmlElementStrategy: WebHtmlElementStrategy.prefer,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        )
+                      : CachedNetworkImage(imageUrl: _article.imageUrl!),
                 ),
               Dimens.boxMedium,
               Text(_article.title!),

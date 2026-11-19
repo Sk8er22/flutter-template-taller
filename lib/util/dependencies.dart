@@ -8,6 +8,7 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:firebase_performance/firebase_performance.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart'
     as fir_remote_config;
+import 'package:flutter/foundation.dart';
 import 'package:flutter_branch_sdk/flutter_branch_sdk.dart';
 import 'package:flutter_template/app/config/constants.dart';
 import 'package:flutter_template/app/config/environment.dart';
@@ -77,8 +78,11 @@ abstract class Dependencies {
     }
 
     // System directories
-    final tempDirectory = await getTemporaryDirectory();
-    final applicationDirectory = await getApplicationDocumentsDirectory();
+    // path_provider has no web implementation: on web the HTTP cache and the
+    // database live in the browser storage instead.
+    final tempDirectory = kIsWeb ? null : await getTemporaryDirectory();
+    final applicationDirectory =
+        kIsWeb ? null : await getApplicationDocumentsDirectory();
 
     // Init date format with locale
     Intl.systemLocale = await findSystemLocale();
@@ -89,7 +93,7 @@ abstract class Dependencies {
       environment.apiBaseUrl,
       apiKey: Constants.apiKey,
       locale: preferredLocales?.join(",") ?? "en",
-      cacheDirectory: tempDirectory.path,
+      cacheDirectory: tempDirectory?.path,
       getBearerToken: secureStorage.getUserAuthToken,
       onUnauthorized: () async {
         Flogger.i("On Unauthorized");
@@ -111,7 +115,7 @@ abstract class Dependencies {
     );
 
     // Database
-    _database = AppDatabase.init(directory: applicationDirectory.path);
+    _database = AppDatabase.init(directory: applicationDirectory?.path);
 
     // Repositories
     getIt.registerSingleton<ArticleRepository>(
@@ -121,40 +125,45 @@ abstract class Dependencies {
       ),
     );
 
-    // Firebase
-    // TODO: Replace options with `DefaultFirebaseOptions.currentPlatform,`
-    // after running `flutterfire configure`
-    try {
-      await Firebase.initializeApp(
-        options: const FirebaseOptions(
-          apiKey: "AIzaSyCMmJ4HDCqQptZ872QYM1uZ6M9a8YVQwaA",
-          appId: "1:930871121577:android:08469e37bd03de82b3fbb8",
-          messagingSenderId:
-              "930871121577-e5it5no5i0ucprepj66rc07f6iu1c9sr.apps.googleusercontent.com",
-          projectId: "flutter-template-lr",
+    // Firebase is only configured for Android and iOS, so on web it is skipped
+    // together with every service built on top of it (App Versioning, Remote
+    // Config, Crashlytics, Performance, Messaging, Analytics).
+    if (!kIsWeb) {
+      // Firebase
+      // TODO: Replace options with `DefaultFirebaseOptions.currentPlatform,`
+      // after running `flutterfire configure`
+      try {
+        await Firebase.initializeApp(
+          options: const FirebaseOptions(
+            apiKey: "AIzaSyCMmJ4HDCqQptZ872QYM1uZ6M9a8YVQwaA",
+            appId: "1:930871121577:android:08469e37bd03de82b3fbb8",
+            messagingSenderId:
+                "930871121577-e5it5no5i0ucprepj66rc07f6iu1c9sr.apps.googleusercontent.com",
+            projectId: "flutter-template-lr",
+          ),
+        );
+      } on FirebaseException catch (_) {
+        // Already initialized (e.g. native auto-init from GoogleService-Info.plist)
+      }
+
+      // App Versioning
+      final appVersioning = AppVersioning.firebaseService(
+        remoteConfigKeys: const RemoteConfigKeys(
+          minimumIosVersionKey: "minimumIosVersion",
+          minimumAndroidVersionKey: "minimumAndroidVersion",
+        ),
+        updateConfig: const UpdateConfig(
+          appStoreAppId: Constants.appstoreAppId,
+          playStoreAppId: Constants.playstoreAppId,
+          appstoreCountryCode: 'US',
         ),
       );
-    } on FirebaseException catch (_) {
-      // Already initialized (e.g. native auto-init from GoogleService-Info.plist)
+      getIt.registerSingleton<AppVersioning>(appVersioning);
+      // Version tracking
+      await appVersioning.tracker.track();
+      // App Updater
+      getIt.registerSingleton<AppUpdater>(AppUpdater(appVersioning));
     }
-
-    // App Versioning
-    final appVersioning = AppVersioning.firebaseService(
-      remoteConfigKeys: const RemoteConfigKeys(
-        minimumIosVersionKey: "minimumIosVersion",
-        minimumAndroidVersionKey: "minimumAndroidVersion",
-      ),
-      updateConfig: const UpdateConfig(
-        appStoreAppId: Constants.appstoreAppId,
-        playStoreAppId: Constants.playstoreAppId,
-        appstoreCountryCode: 'US',
-      ),
-    );
-    getIt.registerSingleton<AppVersioning>(appVersioning);
-    // Version tracking
-    await appVersioning.tracker.track();
-    // App Updater
-    getIt.registerSingleton<AppUpdater>(AppUpdater(appVersioning));
 
     // User Configs
     final userConfig = UserConfigService(sharedPreferences);
@@ -183,7 +192,8 @@ abstract class Dependencies {
       },
     );
     getIt.registerSingleton<BranchApi>(branchApi);
-    branchApi.initBranchSession(enableLogging: isDebugBuild);
+    // The Branch web SDK is not set up in web/index.html
+    if (!kIsWeb) branchApi.initBranchSession(enableLogging: isDebugBuild);
     getIt.registerSingleton<BranchShareHelper>(
       BranchShareHelper(uriScheme: environment.deepLinkScheme),
     );
@@ -197,38 +207,47 @@ abstract class Dependencies {
       ),
     );
 
-    // Datadog
-    await Datadog.initialize(
-      config: DatadogConfig(clientToken: environment.datadogConfig.clientToken),
-      environment: environment.environmentName,
-    );
+    // Datadog (its browser SDK is not set up in web/index.html) and the
+    // Firebase services (Firebase is not initialised on web, see above)
+    if (!kIsWeb) {
+      // Datadog
+      await Datadog.initialize(
+        config:
+            DatadogConfig(clientToken: environment.datadogConfig.clientToken),
+        environment: environment.environmentName,
+      );
 
-    // Crashlytics
-    if (isDebugBuild) {
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
-    } else {
-      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+      // Crashlytics
+      if (isDebugBuild) {
+        await FirebaseCrashlytics.instance
+            .setCrashlyticsCollectionEnabled(false);
+      } else {
+        await FirebaseCrashlytics.instance
+            .setCrashlyticsCollectionEnabled(true);
+      }
+      // Performance Monitoring
+      if (isDebugBuild) {
+        await FirebasePerformance.instance
+            .setPerformanceCollectionEnabled(false);
+      } else {
+        await FirebasePerformance.instance
+            .setPerformanceCollectionEnabled(true);
+      }
+      // Remote Config
+      final remoteConfig = RemoteConfig(
+        fir_remote_config.FirebaseRemoteConfig.instance,
+      );
+      await remoteConfig.init();
+      remoteConfig.fetchAndActive(); // Refresh remote config without waiting
+      getIt.registerSingleton<RemoteConfig>(remoteConfig);
     }
-    // Performance Monitoring
-    if (isDebugBuild) {
-      await FirebasePerformance.instance.setPerformanceCollectionEnabled(false);
-    } else {
-      await FirebasePerformance.instance.setPerformanceCollectionEnabled(true);
-    }
-    // Remote Config
-    final remoteConfig = RemoteConfig(
-      fir_remote_config.FirebaseRemoteConfig.instance,
-    );
-    await remoteConfig.init();
-    remoteConfig.fetchAndActive(); // Refresh remote config without waiting
-    getIt.registerSingleton<RemoteConfig>(remoteConfig);
 
     // Data Collection (GDPR)
     final dataCollectionEnabled = await userConfig.isDataCollectionEnabled();
     setDataCollectionEnabled(dataCollectionEnabled ?? false);
 
-    // Shake to show console
-    if (environment.internal || isDebugBuild) {
+    // Shake to show console (desktop browsers have no accelerometer)
+    if (!kIsWeb && (environment.internal || isDebugBuild)) {
       ShakeManager.init(
         onShake: () {
           Flogger.i("Shake detected");
@@ -265,27 +284,30 @@ abstract class Dependencies {
           showDebugLogs: false,
         ),
       );
-      // Register Datadog listener
-      Flogger.registerListener((record) {
-        if (record.loggerName == defaultLoggerName) {
-          Datadog.logRecord(record.printable(), record.level);
-        }
-      });
-      // Register Crashlytics log listener
-      Flogger.registerListener((record) {
-        if (record.loggerName == defaultLoggerName) {
-          FirebaseCrashlytics.instance.log(record.printable());
-        }
-      });
-      // Register Crashlytics error listener
-      Flogger.registerListener((record) {
-        if (record.level == Level.SEVERE) {
-          FirebaseCrashlytics.instance.recordError(
-            record.printable(),
-            record.stackTrace,
-          );
-        }
-      });
+      // Datadog and Crashlytics are not initialised on web (see register)
+      if (!kIsWeb) {
+        // Register Datadog listener
+        Flogger.registerListener((record) {
+          if (record.loggerName == defaultLoggerName) {
+            Datadog.logRecord(record.printable(), record.level);
+          }
+        });
+        // Register Crashlytics log listener
+        Flogger.registerListener((record) {
+          if (record.loggerName == defaultLoggerName) {
+            FirebaseCrashlytics.instance.log(record.printable());
+          }
+        });
+        // Register Crashlytics error listener
+        Flogger.registerListener((record) {
+          if (record.level == Level.SEVERE) {
+            FirebaseCrashlytics.instance.recordError(
+              record.printable(),
+              record.stackTrace,
+            );
+          }
+        });
+      }
     }
     // Save logs for console
     if (internalEnvironment || debugBuild) {
@@ -320,6 +342,8 @@ abstract class Dependencies {
   static Future<void> registerUser(String userId, String email) async {
     Flogger.i("Registering user");
     Flogger.d("With id $userId and email $email");
+    // None of these services are initialised on web (see register)
+    if (kIsWeb) return;
     await Future.wait([
       FirebaseCrashlytics.instance.setUserIdentifier(userId),
       Analytics.identify(userId, email),
@@ -332,7 +356,8 @@ abstract class Dependencies {
   /// Call this method after logout
   static Future<void> clearAllUserData() async {
     Flogger.i("Clearing all local data");
-    FlutterBranchSdk.logout();
+    // Branch, Analytics and Push Notifications are not initialised on web
+    if (!kIsWeb) FlutterBranchSdk.logout();
     await Future.wait([
       // Clear user data from database
       // TODO: Add user table deletions here
@@ -340,11 +365,11 @@ abstract class Dependencies {
       // Secure storage
       getIt.get<SecureStorage>().deleteAll(),
       // Analytics
-      Analytics.logout(),
+      if (!kIsWeb) Analytics.logout(),
       // User Configs
       getIt.get<UserConfigService>().clear(),
       // Push notifications
-      getIt.get<PushNotificationsHelper>().removeInstallation(),
+      if (!kIsWeb) getIt.get<PushNotificationsHelper>().removeInstallation(),
     ]);
   }
 
@@ -358,11 +383,13 @@ abstract class Dependencies {
     await Future.wait([
       // Store value
       getIt<UserConfigService>().saveDataCollectionEnabled(enabled),
-      // Toggle collection to 3rd party services
-      Analytics.setCollectionEnabled(enabled),
-      Datadog.setTrackingConsent(enabled),
-      FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled),
-      FirebasePerformance.instance.setPerformanceCollectionEnabled(enabled),
+      // Toggle collection to 3rd party services (not initialised on web)
+      if (!kIsWeb) ...[
+        Analytics.setCollectionEnabled(enabled),
+        Datadog.setTrackingConsent(enabled),
+        FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(enabled),
+        FirebasePerformance.instance.setPerformanceCollectionEnabled(enabled),
+      ],
     ]);
   }
 }

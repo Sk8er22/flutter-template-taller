@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -77,22 +78,24 @@ class _AppState extends State<App> with WidgetsBindingObserver {
     Analytics.instance.track(AnalyticsEvent.appOpen());
     // Lifecycle observer
     WidgetsBinding.instance.addObserver(this);
-    // App updater
-    appUpdater.performUpdateIfAvailable();
+    // App updater (store updates do not apply to web, it is not registered)
+    if (!kIsWeb) appUpdater.performUpdateIfAvailable();
     // Router listener
     router.routerDelegate.addListener(_onRouteChanged);
     // Deeplinks
     _subscriptions.add(
       deepLinkManager.deeplink.listen(onDeeplinkReceived),
     );
-    // Push Notifications
-    _subscriptions.add(
-      pushNotificationsHelper
-          .subscribeToToken(pushNotificationsHelper.saveInstallation),
-    );
-    _subscriptions.add(
-      pushNotificationsHelper.subscribeToMessages(branchApi.handleBranchLink),
-    );
+    // Push Notifications (Firebase Messaging is not initialised on web)
+    if (!kIsWeb) {
+      _subscriptions.add(
+        pushNotificationsHelper
+            .subscribeToToken(pushNotificationsHelper.saveInstallation),
+      );
+      _subscriptions.add(
+        pushNotificationsHelper.subscribeToMessages(branchApi.handleBranchLink),
+      );
+    }
   }
 
   @override

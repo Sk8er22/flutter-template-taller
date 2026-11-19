@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:dio_cache_interceptor/dio_cache_interceptor.dart';
 import 'package:dio_cache_interceptor_hive_store/dio_cache_interceptor_hive_store.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_template/data/shared/service/remote/interceptors/accept_language_interceptor.dart';
 import 'package:flutter_template/data/shared/service/remote/interceptors/api_key_interceptor.dart';
 import 'package:flutter_template/data/shared/service/remote/interceptors/auth_token_interceptor.dart';
@@ -15,7 +16,8 @@ abstract class Network {
     final String baseUrl, {
     required final String apiKey,
     required String locale,
-    required String cacheDirectory,
+    // Only null on web, where the cache is kept in the browser's IndexedDB
+    required String? cacheDirectory,
     required Future<String?> Function() getBearerToken,
     required Future<void> Function() onUnauthorized,
     required bool debugMode,
@@ -41,8 +43,8 @@ abstract class Network {
           AcceptLanguageInterceptor(locale),
           // 401 Unauthorized
           UnauthorizedInterceptor(onUnauthorized),
-          // Firebase Performance Monitoring
-          if (!debugMode) FirebasePerformanceInterceptor(),
+          // Firebase Performance Monitoring (not initialised on web)
+          if (!debugMode && !kIsWeb) FirebasePerformanceInterceptor(),
           // Cache (respects origin server cache config)
           DioCacheInterceptor(
             options: CacheOptions(

@@ -7,7 +7,9 @@ import 'package:logging_flutter/logging_flutter.dart';
 export 'package:flutter_template/util/tools/analytics_event.dart';
 
 class Analytics {
-  static const bool _kReleaseMode = kReleaseMode;
+  // Firebase is not initialised on web, so web builds only log the events
+  // like debug builds do.
+  static const bool _kReleaseMode = kReleaseMode && !kIsWeb;
 
   Analytics._();
 

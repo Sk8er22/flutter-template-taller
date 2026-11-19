@@ -1,9 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_template/presentation/shared/design_system/utils/connectivity_helper.dart';
 import 'package:flutter_template/presentation/shared/design_system/views/ds_content_placeholder_views.dart';
 import 'package:flutter_template/presentation/shared/design_system/views/ds_loading_indicator.dart';
+import 'package:flutter_template/util/extensions/context_extension.dart';
+import 'package:flutter_template/util/tools/custom_tabs_launcher.dart';
 import 'package:logging_flutter/logging_flutter.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -76,6 +79,9 @@ class _InAppWebViewState extends State<InAppWebView> {
   @override
   void initState() {
     super.initState();
+    // webview_flutter has no web implementation, so on web the page is
+    // offered in a new browser tab instead (see build)
+    if (kIsWeb) return;
     _controller = (widget.controller ?? WebViewController())
       ..setBackgroundColor(widget.backgroundColor ?? Colors.transparent)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
@@ -197,22 +203,31 @@ class _InAppWebViewState extends State<InAppWebView> {
 
   @override
   Widget build(BuildContext context) {
-    final body = hasInternet != false
-        ? Stack(
-            children: <Widget>[
-              WebViewWidget(
-                controller: _controller,
-              ),
-              // TODO: This should be a horizontal progressbar on top
-              if (isLoadingPage)
-                Center(
-                  child: DSLoadingIndicator(
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-            ],
+    final body = kIsWeb
+        ? DSEmptyView(
+            description: widget.initialUrl,
+            actionButtonText: context.l10n.webViewOpenInNewTabButton,
+            onAction: () => CustomTabsLauncher.instance.launchURL(
+              widget.initialUrl,
+              context: context,
+            ),
           )
-        : widget.noInternetView;
+        : hasInternet != false
+            ? Stack(
+                children: <Widget>[
+                  WebViewWidget(
+                    controller: _controller,
+                  ),
+                  // TODO: This should be a horizontal progressbar on top
+                  if (isLoadingPage)
+                    Center(
+                      child: DSLoadingIndicator(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                ],
+              )
+            : widget.noInternetView;
 
     return widget.useScaffold
         ? Scaffold(

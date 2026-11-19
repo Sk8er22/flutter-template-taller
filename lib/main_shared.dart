@@ -22,7 +22,8 @@ void mainShared({
         details.exception,
         details.stack ?? StackTrace.empty,
       );
-      if (kReleaseMode) {
+      // Crashlytics has no web support (Firebase is not initialised there)
+      if (kReleaseMode && !kIsWeb) {
         FirebaseCrashlytics.instance.recordFlutterError(details, fatal: false);
       }
     };

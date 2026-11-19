@@ -55,6 +55,14 @@ FlutterTemplate Flutter Application. Add a description of what the app does.
 
     > During development, you can also run `flutter pub run build_runner watch` on a console tab to automatically re-run the build_runner when part files change.
 
+1. Run the app in Chrome:
+
+    ```bash
+    flutter run -d chrome -t lib/main_qa.dart
+    ```
+
+    > The Articles list is loaded from [NewsAPI](https://newsapi.org), whose free plan only accepts browser requests from `localhost`. On web, the native-only integrations (Firebase, Branch, Datadog, push notifications, shake to open the console) are skipped and articles open in a new browser tab instead of an in-app web view.
+
 ## Development Process
 
 Review the [CONTRIBUTING.md](/CONTRIBUTING.md) file to learn about the development process.
