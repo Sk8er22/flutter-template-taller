@@ -98,5 +98,9 @@
   "profileLegalLicenses": "Third Party Notices",
   "@profileLegalLicenses": {
     "description": "Profile item that navigates to 3rd party licenses screen"
+  },
+  "webViewOpenInNewTabButton": "Open in a new tab",
+  "@webViewOpenInNewTabButton": {
+    "description": "Button shown on web, where web pages cannot be embedded in the app, to open the page in a new browser tab"
   }
 }

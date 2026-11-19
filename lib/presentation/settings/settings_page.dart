@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_template/app/config/constants.dart';
 import 'package:flutter_template/app/l10n/l10n.dart';
@@ -41,24 +42,25 @@ class SettingsPage extends StatelessWidget with PoppableMixin {
               padding: EdgeInsets.all(Dimens.marginMedium),
               child: DSAppVersion(),
             ),
-            // Leave a Review
-            ListTile(
-              title: const Text("Leave a Review"),
-              onTap: () async {
-                try {
-                  final InAppReview inAppReview = InAppReview.instance;
-                  if (await inAppReview.isAvailable()) {
-                    inAppReview.requestReview();
-                  } else {
-                    inAppReview.openStoreListing(
-                      appStoreId: Constants.appstoreAppId,
-                    );
+            // Leave a Review (in_app_review has no web implementation)
+            if (!kIsWeb)
+              ListTile(
+                title: const Text("Leave a Review"),
+                onTap: () async {
+                  try {
+                    final InAppReview inAppReview = InAppReview.instance;
+                    if (await inAppReview.isAvailable()) {
+                      inAppReview.requestReview();
+                    } else {
+                      inAppReview.openStoreListing(
+                        appStoreId: Constants.appstoreAppId,
+                      );
+                    }
+                  } catch (e) {
+                    Flogger.i("Error requesting app review: $e");
                   }
-                } catch (e) {
-                  Flogger.i("Error requesting app review: $e");
-                }
-              },
-            ),
+                },
+              ),
             // Show Legal Licenses
             FutureBuilder<PackageInfo>(
               future: PackageInfo.fromPlatform(),
