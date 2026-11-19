@@ -1,7 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/widget_previews.dart';
+import 'package:flutter_template/app/l10n/l10n.dart' show previewLocalizations;
 import 'package:flutter_template/presentation/shared/design_system/theme/dimens.dart';
+import 'package:flutter_template/presentation/shared/design_system/theme/theme_factory.dart';
 import 'package:flutter_template/presentation/shared/design_system/views/ds_button.dart';
 import 'package:flutter_template/util/extensions/context_extension.dart';
+
+// Widget Preview example: DSErrorView rendered with the app theme and texts.
+@Preview(
+  name: 'DSErrorView',
+  size: Size(360, 400),
+  theme: previewTheme,
+  localizations: previewLocalizations,
+)
+Widget dsErrorViewPreview() => DSErrorView(onRefresh: () {});
 
 class DSErrorView extends StatelessWidget {
   final bool useScaffold;
