@@ -192,6 +192,37 @@ Try the following steps if you are having trouble running the project:
 - Remove Pods folder `rm -rf ios/Pods`.
 - Update Pods repository `pod repo update`.
 
+## Possible improvements
+
+### Let GetIt build the blocs
+
+Today each page has a wrapper widget (`ArticlesPage`, `ArticleDetailPage`) that builds its bloc by hand and passes the dependencies itself:
+
+```dart
+BlocProvider<ArticlesBloc>(
+  create: (context) => ArticlesBloc(getIt<ArticleRepository>())
+    ..add(const ArticlesEvent.fetch()),
+  child: const ArticlesView(),
+)
+```
+
+The blocs could be registered in `Dependencies.register` (`lib/util/dependencies.dart`) with `registerFactory`, next to the repositories. The page then asks for the bloc and no longer knows what it needs:
+
+```dart
+getIt.registerFactory(() => ArticlesBloc(getIt<ArticleRepository>()));
+
+BlocProvider(
+  create: (_) => getIt<ArticlesBloc>()..add(const ArticlesEvent.fetch()),
+  child: const ArticlesView(),
+)
+```
+
+A bloc that takes a runtime value, like the `id` of `ArticleDetailBloc`, uses `registerFactoryParam`.
+
+What this does not remove is the provider. `BlocBuilder` and `context.read` look for a `BlocProvider` above them, and the provider also closes the bloc when the page goes away. To get rid of the wrapper widget, move the provider to the route builder in `lib/app/navigation/router/app_routes.dart`, so the page is only the view.
+
+Do not register a bloc with `registerSingleton` to skip the provider: it is never closed and its state survives navigation.
+
 ## Flutter resources
 
 - [Flutter Documentation](https://flutter.dev/docs).
